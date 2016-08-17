@@ -13,6 +13,7 @@
 #include <stdbool.h>
 #include <strings.h>
 #include <string.h>
+#include <sys/socket.h>
 
 #define PORTNUM 15001
 #define EPOLLSIZE 5000
@@ -115,7 +116,7 @@ int main(int ac, char *av[])
                     }
                     else
                     {
-                        send(sock, message, BUFSIZ, 0);
+                        send(sd, message, BUFSIZ, 0);
                     }
                 }
             }
@@ -126,7 +127,7 @@ int main(int ac, char *av[])
     {
         //关闭父进程和sock
         close(pipe_fd[0]);
-        close(sock);
+        close(sd);
     }
     else
     {
