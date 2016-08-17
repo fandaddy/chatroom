@@ -1,5 +1,5 @@
 /*************************************************************************
-	> File Name: make_socket_connect.c
+	> File Name: make_socket_bind.c
 	> Author: Jiangxiaobai
 	> Mail: jiangxiaobai1989@gmail.com
 	> Created Time: Wed 17 Aug 2016 03:24:11 PM CST
@@ -35,4 +35,5 @@ int make_socket_bind(int portnum)
         return -1;
     }
 
+    return sd;
 }
