@@ -24,10 +24,11 @@
 #define SERVER_WELCOME "Welcome to the char room! Ur chat ID is: CLIENT #%d"
 #define SERVER_MESSAGE "ClientID %d say >> %s"
 #define CAUTION "There is only one int in the chat room"
+#define BUFSIZ 0xFFFF
 
 int make_socket_bind(int);
-static void addfd(int, int, bool);
-static int sendbroadcastmsg(int);
+void addfd(int, int, bool);
+int sendbroadcastmsg(int);
 
 struct stru_clients
 {
@@ -35,8 +36,8 @@ struct stru_clients
     int flag;
 };
 
-static struct stru_clients clients[MAXSIZE];
-static int count;
+struct stru_clients clients[MAXSIZE];
+int count;
 
 int main(int ac, char *av[])
 {
@@ -44,6 +45,7 @@ int main(int ac, char *av[])
     int epfd;
     static struct epoll_event events[EPOLL_SIZE];
 
+    //int count = 0;
     sock_id = make_socket_bind(PORTNUM);
     if(sock_id == -1)
     {
@@ -65,6 +67,7 @@ int main(int ac, char *av[])
     addfd(epfd, sock_id, true);
 
     /* 主循环 */
+    //printf("count: %d\n", count);
     while(1)
     {
         int epoll_events_count = epoll_wait(epfd, events, EPOLL_SIZE, -1);
@@ -73,10 +76,15 @@ int main(int ac, char *av[])
             perror("epoll failure");
             break;
         }
-        printf("epoll_events_count = %d\n", epoll_events_count);
+        //printf("epoll_events_count = %d\n", epoll_events_count);
+        //for(int i = 0; i < count; i++)
+        //{
+        //    printf("%d: clients[%d].clientfd: %d\n", i, i, clients[i].clientfd);
+        //}
         for(int i = 0; i < epoll_events_count; ++i)
         {
             int sockfd = events[i].data.fd;
+            //printf("sockfd: %d\nsock_id:%d\n", sockfd, sock_id);
             if(sockfd == sock_id)
             {
                 struct sockaddr_in client_address;
@@ -89,11 +97,15 @@ int main(int ac, char *av[])
                 // 保存用户连接
                 int j;
                 for(j = 0; clients[j].flag != 0 && j < MAXSIZE; j++);
+                //printf("count is %d\n", count);
                 if(j <= MAXSIZE)
                 {
                     clients[j].clientfd = clientfd;
                     clients[j].flag = 1;
                     count++;
+                    printf("Add new clientfd = %d to epoll\n", clientfd);
+                    //printf("debug: clienfd: %d\n", clients[j].clientfd);
+                    printf("Now there are %d clients in the chat room\n", count);
                 }
                 else
                 {
@@ -113,10 +125,14 @@ int main(int ac, char *av[])
             }
             else
             {
-                int ret = sendbroadcastmsg(sock_id);
+                //for(i = 0; i < count; i++)
+                //{
+                //    printf("%d: clients[%d].clientfd: %d\n", i, i, clients[i].clientfd);
+                //}
+                int ret = sendbroadcastmsg(sockfd);
                 if(ret < 0)
                 {
-                    perror("sendbroadcastmsg");
+                    perror("error");
                     exit(EXIT_FAILURE);
                 }
             }
@@ -137,6 +153,13 @@ int sendbroadcastmsg(int clientfd)
     bzero(message, BUFSIZ);
 
     int len = recv(clientfd, buf, BUFSIZ, 0);
+    //printf("len:%d\nclientfd:%d\n", len, clientfd);
+    
+    //for(i = 0; i < count; i++)
+    //{
+    //    printf("%d: clients[%d].clientfd: %d\n", i, i, clients[i].clientfd);   
+    //}
+
 
     if(len == 0)
     {
@@ -144,23 +167,29 @@ int sendbroadcastmsg(int clientfd)
         for(i = 0; clients[i].clientfd != clientfd; i++);
         clients[i].flag = 0;
         count--;
-        printf("clientID = %d closed.\nnow there are %d clients in the chat room\n", clientfd, count);
+        //printf("clientID = %d closed.\nnow there are %d clients in the chat room\n", clientfd, count);
     }
     else
     {
         if(count == 1)
         {
+            //printf("count is 1\n");
             send(clientfd, CAUTION, strlen(CAUTION), 0);
             return len;
         }
         sprintf(message, SERVER_MESSAGE, clientfd, buf);
+        //printf("count is %d\n", count);
         for(i = 0; i < count; i++)
         {
+            //printf("%d: clients[%d].clientfd: %d\n", i, i, clients[i].clientfd);
             if(clients[i].clientfd != clientfd)
             {
+                //printf("sendbroadcastmsg:\n");
+                //fprintf(stdout, message);
+                //printf("clients.clientfd = %d\n", clients[i].clientfd);
                 if(send(clients[i].clientfd, message, BUFSIZ, 0) < 0)
                 {
-                    perror("send");
+                    perror("sendbroadcastmsg_send");
                     exit(EXIT_FAILURE);
                 }
             }

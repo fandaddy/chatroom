@@ -17,6 +17,7 @@
 
 #define PORTNUM 15001
 #define EPOLLSIZE 5000
+#define BUFSIZ 0xFFFF
 
 int make_socket_connect(int);
 void addfd(int, int, bool);
@@ -69,7 +70,8 @@ int main(int ac, char *av[])
         {
             bzero(&message, BUFSIZ);
             fgets(message, BUFSIZ, stdin);
-            if(strncasecmp(message, "exit", 4) == 0)
+            // write(fileno(stdout), &message, BUFSIZ);
+            if(strncasecmp(message, "EXIT", 4) == 0)
             {
                 isClientwork = 0;
             }
@@ -77,6 +79,7 @@ int main(int ac, char *av[])
             {
                 if(write(pipe_fd[1], message, strlen(message) - 1) < 0)
                 {
+                    //printf("有没有进来写过信息？\n");
                     perror("write");
                     exit(EXIT_FAILURE);
                 }
@@ -104,6 +107,7 @@ int main(int ac, char *av[])
                     }
                     else
                     {
+                        //fprintf(stdout, "message", message);
                         printf("%s\n", message);
                     }
                 }
